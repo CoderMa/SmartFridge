@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>智能售卖柜后台管理系统 - 统计分析</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        .header { background-color: #4CAF50; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .user-info { display: flex; align-items: center; }
+        .user-info span { margin-right: 15px; }
+        .container { display: flex; height: calc(100vh - 60px); }
+        .sidebar { width: 200px; background-color: #f1f1f1; padding: 20px; }
+        .sidebar ul { list-style-type: none; padding: 0; }
+        .sidebar li { margin-bottom: 10px; }
+        .sidebar a { text-decoration: none; color: #333; display: block; padding: 10px; border-radius: 4px; }
+        .sidebar a:hover { background-color: #ddd; }
+        .sidebar a.active { background-color: #4CAF50; color: white; }
+        .content { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        h1 { margin-top: 0; }
+        .stats-cards { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 30px; }
+        .card { background-color: white; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); padding: 20px; flex: 1; min-width: 200px; }
+        .card h3 { margin-top: 0; color: #333; }
+        .card .number { font-size: 24px; font-weight: bold; color: #4CAF50; }
+        .chart-container { background-color: white; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 30px; }
+        .chart-container h2 { margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        tr:hover { background-color: #f5f5f5; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>智能售卖柜后台管理系统</h1>
+        <div class="user-info">
+            <span>欢迎，{{ name }}</span>
+            <a href="/logout" style="color: white;">退出</a>
+        </div>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <ul>
+                <li><a href="/">首页</a></li>
+                <li><a href="/devices">设备管理</a></li>
+                <li><a href="/products">商品管理</a></li>
+                <li><a href="/orders">订单管理</a></li>
+                <li><a href="/statistics" class="active">统计分析</a></li>
+                {% if session.role == 'admin' %}
+                <li><a href="/settings">系统设置</a></li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="content">
+            <h1>统计分析</h1>
+            
+            <div class="stats-cards">
+                <div class="card">
+                    <h3>总销售额</h3>
+                    <p class="number" id="total-amount">¥0.00</p>
+                </div>
+                <div class="card">
+                    <h3>总订单数</h3>
+                    <p class="number" id="total-sales">0</p>
+                </div>
+                <div class="card">
+                    <h3>平均客单价</h3>
+                    <p class="number" id="avg-order">¥0.00</p>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h2>支付方式分布</h2>
+                <div id="payment-methods-chart" style="height: 300px;">
+                    <!-- 支付方式图表将通过JavaScript动态加载 -->
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h2>商品销售排行</h2>
+                <table id="product-sales-table">
+                    <thead>
+                        <tr>
+                            <th>排名</th>
+                            <th>商品名称</th>
+                            <th>销售数量</th>
+                            <th>销售金额</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!-- 商品销售数据将通过JavaScript动态加载 -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 加载统计数据
+        fetch('/api/statistics')
+            .then(response => response.json())
+            .then(stats => {
+                // 更新总览数据
+                document.getElementById('total-amount').textContent = `¥${stats.total_amount.toFixed(2)}`;
+                document.getElementById('total-sales').textContent = stats.total_sales;
+                document.getElementById('avg-order').textContent = `¥${(stats.total_amount / stats.total_sales).toFixed(2)}`;
+                
+                // 更新商品销售排行
+                const tbody = document.querySelector('#product-sales-table tbody');
+                tbody.innerHTML = '';
+                
+                // 将商品销售数据转换为数组并按销售额排序
+                const productSales = Object.entries(stats.product_sales)
+                    .map(([id, data]) => ({
+                        id,
+                        name: data.name,
+                        count: data.count,
+                        amount: data.amount
+                    }))
+                    .sort((a, b) => b.amount - a.amount);
+                
+                // 显示前10名商品
+                productSales.slice(0, 10).forEach((product, index) => {
+                    const row = document.createElement('tr');
+                    
+                    row.innerHTML = `
+                        <td>${index + 1}</td>
+                        <td>${product.name}</td>
+                        <td>${product.count}</td>
+                        <td>¥${product.amount.toFixed(2)}</td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+                
+                // 简单的支付方式分布图表（文本形式）
+                const paymentMethodsChart = document.getElementById('payment-methods-chart');
+                let paymentMethodsHtml = '<ul style="list-style-type: none; padding: 0;">';
+                
+                for (const [method, count] of Object.entries(stats.payment_methods)) {
+                    const percentage = (count / stats.total_sales * 100).toFixed(1);
+                    const barWidth = percentage + '%';
+                    
+                    paymentMethodsHtml += `
+                        <li style="margin-bottom: 10px;">
+                            <div style="display: flex; align-items: center;">
+                                <div style="width: 100px;">${method}</div>
+                                <div style="flex-grow: 1; background-color: #f1f1f1; height: 20px; border-radius: 10px;">
+                                    <div style="background-color: #4CAF50; height: 100%; width: ${barWidth}; border-radius: 10px;"></div>
+                                </div>
+                                <div style="margin-left: 10px;">${count} (${percentage}%)</div>
+                            </div>
+                        </li>
+                    `;
+                }
+                
+                paymentMethodsHtml += '</ul>';
+                paymentMethodsChart.innerHTML = paymentMethodsHtml;
+            })
+            .catch(error => console.error('加载统计数据失败:', error));
+    </script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>智能售卖柜后台管理系统</title>
+        <style>
+            body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+            .header { background-color: #4CAF50; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+            .user-info { display: flex; align-items: center; }
+            .user-info span { margin-right: 15px; }
+            .container { display: flex; height: calc(100vh - 60px); }
+            .sidebar { width: 200px; background-color: #f1f1f1; padding: 20px; }
+            .sidebar ul { list-style-type: none; padding: 0; }
+            .sidebar li { margin-bottom: 10px; }
+            .sidebar a { text-decoration: none; color: #333; display: block; padding: 10px; border-radius: 4px; }
+            .sidebar a:hover { background-color: #ddd; }
+            .sidebar a.active { background-color: #4CAF50; color: white; }
+            .content { flex-grow: 1; padding: 20px; }
+            h1 { margin-top: 0; }
+        </style>
+    </head>
+    <body>
+        <div class="header">
+            <h1>智能售卖柜后台管理系统</h1>
+            <div class="user-info">
+                <span>欢迎，{{ name }}</span>
+                <a href="/logout" style="color: white;">退出</a>
+            </div>
+        </div>
+        <div class="container">
+            <div class="sidebar">
+                <ul>
+                    <li><a href="/" class="active">首页</a></li>
+                    <li><a href="/devices">设备管理</a></li>
+                    <li><a href="/products">商品管理</a></li>
+                    <li><a href="/orders">订单管理</a></li>
+                    <li><a href="/statistics">统计分析</a></li>
+                    {% if session.role == 'admin' %}
+                    <li><a href="/settings">系统设置</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+            <div class="content">
+                <h1>欢迎使用智能售卖柜后台管理系统</h1>
+                <p>请从左侧菜单选择功能。</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    

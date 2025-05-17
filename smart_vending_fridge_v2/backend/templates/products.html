@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>智能售卖柜后台管理系统 - 商品管理</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        .header { background-color: #4CAF50; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .user-info { display: flex; align-items: center; }
+        .user-info span { margin-right: 15px; }
+        .container { display: flex; height: calc(100vh - 60px); }
+        .sidebar { width: 200px; background-color: #f1f1f1; padding: 20px; }
+        .sidebar ul { list-style-type: none; padding: 0; }
+        .sidebar li { margin-bottom: 10px; }
+        .sidebar a { text-decoration: none; color: #333; display: block; padding: 10px; border-radius: 4px; }
+        .sidebar a:hover { background-color: #ddd; }
+        .sidebar a.active { background-color: #4CAF50; color: white; }
+        .content { flex-grow: 1; padding: 20px; }
+        h1 { margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        tr:hover { background-color: #f5f5f5; }
+        .button { padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .button:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>智能售卖柜后台管理系统</h1>
+        <div class="user-info">
+            <span>欢迎，{{ name }}</span>
+            <a href="/logout" style="color: white;">退出</a>
+        </div>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <ul>
+                <li><a href="/">首页</a></li>
+                <li><a href="/devices">设备管理</a></li>
+                <li><a href="/products" class="active">商品管理</a></li>
+                <li><a href="/orders">订单管理</a></li>
+                <li><a href="/statistics">统计分析</a></li>
+                {% if session.role == 'admin' %}
+                <li><a href="/settings">系统设置</a></li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="content">
+            <h1>商品管理</h1>
+            
+            {% if session.role == 'admin' %}
+            <button class="button" onclick="showAddProductForm()">添加商品</button>
+            {% endif %}
+            
+            <table id="products-table">
+                <thead>
+                    <tr>
+                        <th>商品ID</th>
+                        <th>名称</th>
+                        <th>价格</th>
+                        <th>类别</th>
+                        <th>条形码</th>
+                        <th>保质期(天)</th>
+                        {% if session.role == 'admin' %}
+                        <th>操作</th>
+                        {% endif %}
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 商品数据将通过JavaScript动态加载 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 加载商品数据
+        function loadProducts() {
+            fetch('/api/products')
+                .then(response => response.json())
+                .then(products => {
+                    const tbody = document.querySelector('#products-table tbody');
+                    tbody.innerHTML = '';
+                    
+                    products.forEach(product => {
+                        const row = document.createElement('tr');
+                        
+                        let html = `
+                            <td>${product.product_id}</td>
+                            <td>${product.name}</td>
+                            <td>¥${product.price.toFixed(2)}</td>
+                            <td>${product.category || '-'}</td>
+                            <td>${product.barcode || '-'}</td>
+                            <td>${product.shelf_life || '-'}</td>
+                        `;
+                        
+                        // 如果是管理员，添加操作按钮
+                        if ('{{ session.role }}' === 'admin') {
+                            html += `
+                                <td>
+                                    <button class="button" onclick="editProduct('${product.product_id}')">编辑</button>
+                                </td>
+                            `;
+                        }
+                        
+                        row.innerHTML = html;
+                        tbody.appendChild(row);
+                    });
+                })
+                .catch(error => console.error('加载商品数据失败:', error));
+        }
+        
+        // 页面加载时获取商品数据
+        window.onload = loadProducts;
+        
+        // 显示添加商品表单
+        function showAddProductForm() {
+            alert('添加商品功能尚未实现');
+        }
+        
+        // 编辑商品
+        function editProduct(productId) {
+            alert(`编辑商品 ${productId} 功能尚未实现`);
+        }
+    </script>
+</body>
+</html>

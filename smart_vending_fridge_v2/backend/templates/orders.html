@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>智能售卖柜后台管理系统 - 订单管理</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        .header { background-color: #4CAF50; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .user-info { display: flex; align-items: center; }
+        .user-info span { margin-right: 15px; }
+        .container { display: flex; height: calc(100vh - 60px); }
+        .sidebar { width: 200px; background-color: #f1f1f1; padding: 20px; }
+        .sidebar ul { list-style-type: none; padding: 0; }
+        .sidebar li { margin-bottom: 10px; }
+        .sidebar a { text-decoration: none; color: #333; display: block; padding: 10px; border-radius: 4px; }
+        .sidebar a:hover { background-color: #ddd; }
+        .sidebar a.active { background-color: #4CAF50; color: white; }
+        .content { flex-grow: 1; padding: 20px; }
+        h1 { margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        tr:hover { background-color: #f5f5f5; }
+        .status { padding: 5px 10px; border-radius: 3px; }
+        .completed { background-color: #4CAF50; color: white; }
+        .pending { background-color: #2196F3; color: white; }
+        .cancelled { background-color: #f44336; color: white; }
+        .button { padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .button:hover { background-color: #45a049; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>智能售卖柜后台管理系统</h1>
+        <div class="user-info">
+            <span>欢迎，{{ name }}</span>
+            <a href="/logout" style="color: white;">退出</a>
+        </div>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <ul>
+                <li><a href="/">首页</a></li>
+                <li><a href="/devices">设备管理</a></li>
+                <li><a href="/products">商品管理</a></li>
+                <li><a href="/orders" class="active">订单管理</a></li>
+                <li><a href="/statistics">统计分析</a></li>
+                {% if session.role == 'admin' %}
+                <li><a href="/settings">系统设置</a></li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="content">
+            <h1>订单管理</h1>
+            
+            <table id="orders-table">
+                <thead>
+                    <tr>
+                        <th>订单ID</th>
+                        <th>用户ID</th>
+                        <th>状态</th>
+                        <th>商品</th>
+                        <th>总金额</th>
+                        <th>支付方式</th>
+                        <th>详情</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 订单数据将通过JavaScript动态加载 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 加载订单数据
+        fetch('/api/orders')
+            .then(response => response.json())
+            .then(orders => {
+                const tbody = document.querySelector('#orders-table tbody');
+                tbody.innerHTML = '';
+                
+                orders.forEach(order => {
+                    const row = document.createElement('tr');
+                    
+                    // 格式化商品列表
+                    const productsList = order.products.map(p => p.name).join(', ');
+                    
+                    row.innerHTML = `
+                        <td>${order.transaction_id}</td>
+                        <td>${order.user_id}</td>
+                        <td><span class="status ${order.status}">${order.status}</span></td>
+                        <td>${productsList}</td>
+                        <td>¥${order.total_amount.toFixed(2)}</td>
+                        <td>${order.payment_method || '-'}</td>
+                        <td><button class="button" onclick="showOrderDetails('${order.transaction_id}')">查看详情</button></td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(error => console.error('加载订单数据失败:', error));
+        
+        // 显示订单详情
+        function showOrderDetails(orderId) {
+            alert(`订单 ${orderId} 详情功能尚未实现`);
+        }
+    </script>
+</body>
+</html>

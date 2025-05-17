@@ -1,0 +1,14 @@
+2025-05-17 13:58:03 - INFO - main.py:39 - 智能售卖柜控制系统启动
+2025-05-17 13:58:03 - INFO - config_manager.py:207 - 从 D:\workspace\vscodeprojects\smart_vending_fridge_v2\config\config.json 加载配置
+2025-05-17 13:58:03 - INFO - main.py:44 - 配置管理器初始化完成
+2025-05-17 13:58:03 - INFO - product_recognition.py:57 - 从 D:\workspace\vscodeprojects\smart_vending_fridge_v2\data/products.json 加载商品数据库
+2025-05-17 13:58:03 - INFO - product_recognition.py:44 - 商品识别系统初始化完成
+2025-05-17 13:58:03 - INFO - main.py:48 - 商品识别系统初始化完成
+2025-05-17 13:58:03 - INFO - payment_methods.py:31 - 微信支付 支付初始化完成
+2025-05-17 13:58:03 - INFO - payment_methods.py:31 - 支付宝 支付初始化完成
+2025-05-17 13:58:03 - INFO - payment_methods.py:31 - 银联支付 支付初始化完成
+2025-05-17 13:58:03 - INFO - payment_manager.py:42 - 支付管理器初始化完成
+2025-05-17 13:58:03 - INFO - main.py:52 - 支付管理器初始化完成
+2025-05-17 13:58:03 - INFO - main.py:60 - 系统运行中，按 Ctrl+C 退出...
+2025-05-17 14:38:34 - INFO - main.py:64 - 接收到退出信号，系统正在关闭...
+2025-05-17 14:38:34 - INFO - main.py:70 - 智能售卖柜控制系统已关闭

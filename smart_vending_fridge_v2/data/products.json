@@ -1,0 +1,50 @@
+{
+  "SKU001": {
+    "name": "可口可乐",
+    "price": 3.5,
+    "category": "饮料",
+    "image_path": "data/product_images/coke.jpg",
+    "barcode": "6901234567890",
+    "weight": 330,
+    "dimensions": {
+      "width": 6.5,
+      "height": 12.0,
+      "depth": 6.5
+    },
+    "shelf_life": 365,
+    "storage_requirements": {
+      "min_temp": 2,
+      "max_temp": 8
+    }
+  },
+  "SKU002": {
+    "name": "百事可乐",
+    "price": 3.5,
+    "category": "饮料",
+    "image_path": "data/product_images/pepsi.jpg",
+    "barcode": "6901234567891"
+  },
+  "SKU003": {
+    "name": "农夫山泉",
+    "price": 2.0,
+    "category": "饮料",
+    "image_path": "data/product_images/water.jpg",
+    "barcode": "6901234567892"
+  },
+  "SKU004": {
+    "name": "三明治",
+    "price": 15.0,
+    "category": "食品",
+    "image_path": "data/product_images/sandwich.jpg",
+    "barcode": "6901234567893",
+    "shelf_life": 2
+  },
+  "SKU005": {
+    "name": "酸奶",
+    "price": 5.5,
+    "category": "乳制品",
+    "image_path": "data/product_images/yogurt.jpg",
+    "barcode": "6901234567894",
+    "shelf_life": 7
+  }
+}

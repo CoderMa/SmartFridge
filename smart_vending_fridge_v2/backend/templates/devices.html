@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>智能售卖柜后台管理系统 - 设备管理</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        .header { background-color: #4CAF50; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .user-info { display: flex; align-items: center; }
+        .user-info span { margin-right: 15px; }
+        .container { display: flex; height: calc(100vh - 60px); }
+        .sidebar { width: 200px; background-color: #f1f1f1; padding: 20px; }
+        .sidebar ul { list-style-type: none; padding: 0; }
+        .sidebar li { margin-bottom: 10px; }
+        .sidebar a { text-decoration: none; color: #333; display: block; padding: 10px; border-radius: 4px; }
+        .sidebar a:hover { background-color: #ddd; }
+        .sidebar a.active { background-color: #4CAF50; color: white; }
+        .content { flex-grow: 1; padding: 20px; }
+        h1 { margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+        th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
+        th { background-color: #f2f2f2; }
+        tr:hover { background-color: #f5f5f5; }
+        .status { padding: 5px 10px; border-radius: 3px; }
+        .online { background-color: #4CAF50; color: white; }
+        .offline { background-color: #f44336; color: white; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>智能售卖柜后台管理系统</h1>
+        <div class="user-info">
+            <span>欢迎，{{ name }}</span>
+            <a href="/logout" style="color: white;">退出</a>
+        </div>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <ul>
+                <li><a href="/">首页</a></li>
+                <li><a href="/devices" class="active">设备管理</a></li>
+                <li><a href="/products">商品管理</a></li>
+                <li><a href="/orders">订单管理</a></li>
+                <li><a href="/statistics">统计分析</a></li>
+                {% if session.role == 'admin' %}
+                <li><a href="/settings">系统设置</a></li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="content">
+            <h1>设备管理</h1>
+            
+            <table id="devices-table">
+                <thead>
+                    <tr>
+                        <th>设备ID</th>
+                        <th>型号</th>
+                        <th>版本</th>
+                        <th>状态</th>
+                        <th>温度</th>
+                        <th>位置</th>
+                        <th>最后更新时间</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 设备数据将通过JavaScript动态加载 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 加载设备数据
+        fetch('/api/devices')
+            .then(response => response.json())
+            .then(devices => {
+                const tbody = document.querySelector('#devices-table tbody');
+                tbody.innerHTML = '';
+                
+                devices.forEach(device => {
+                    const row = document.createElement('tr');
+                    
+                    row.innerHTML = `
+                        <td>${device.device_id}</td>
+                        <td>${device.model}</td>
+                        <td>${device.version || '-'}</td>
+                        <td><span class="status ${device.status}">${device.status}</span></td>
+                        <td>${device.temperature !== null ? device.temperature + '°C' : '-'}</td>
+                        <td>${device.location || '-'}</td>
+                        <td>${device.last_update || '-'}</td>
+                    `;
+                    
+                    tbody.appendChild(row);
+                });
+            })
+            .catch(error => console.error('加载设备数据失败:', error));
+    </script>
+</body>
+</html>

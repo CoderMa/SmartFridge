@@ -1,0 +1,22 @@
+[
+  {
+    "id": "default_campaign",
+    "name": "默认广告活动",
+    "start_time": 1746950766.7017498,
+    "end_time": 1778486766.7017498,
+    "priority": 1,
+    "target_audience": "all",
+    "content": [
+      {
+        "type": "image",
+        "path": "data/ads/default/default_ad.jpg",
+        "duration": 10
+      },
+      {
+        "type": "video",
+        "path": "data/ads/default/default_video.mp4",
+        "duration": 30
+      }
+    ]
+  }
+]

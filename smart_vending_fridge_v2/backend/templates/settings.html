@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>智能售卖柜后台管理系统 - 系统设置</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        .header { background-color: #4CAF50; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .user-info { display: flex; align-items: center; }
+        .user-info span { margin-right: 15px; }
+        .container { display: flex; height: calc(100vh - 60px); }
+        .sidebar { width: 200px; background-color: #f1f1f1; padding: 20px; }
+        .sidebar ul { list-style-type: none; padding: 0; }
+        .sidebar li { margin-bottom: 10px; }
+        .sidebar a { text-decoration: none; color: #333; display: block; padding: 10px; border-radius: 4px; }
+        .sidebar a:hover { background-color: #ddd; }
+        .sidebar a.active { background-color: #4CAF50; color: white; }
+        .content { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        h1 { margin-top: 0; }
+        .settings-section { background-color: white; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
+        .settings-section h2 { margin-top: 0; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="text"], input[type="number"], select { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
+        .button { padding: 10px 20px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .button:hover { background-color: #45a049; }
+        .success-message { color: #4CAF50; margin-top: 10px; }
+        .error-message { color: #f44336; margin-top: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>智能售卖柜后台管理系统</h1>
+        <div class="user-info">
+            <span>欢迎，{{ name }}</span>
+            <a href="/logout" style="color: white;">退出</a>
+        </div>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <ul>
+                <li><a href="/">首页</a></li>
+                <li><a href="/devices">设备管理</a></li>
+                <li><a href="/products">商品管理</a></li>
+                <li><a href="/orders">订单管理</a></li>
+                <li><a href="/statistics">统计分析</a></li>
+                {% if session.role == 'admin' %}
+                <li><a href="/settings" class="active">系统设置</a></li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="content">
+            <h1>系统设置</h1>
+            
+            <div class="settings-section">
+                <h2>设备信息</h2>
+                <div class="form-group">
+                    <label for="device-id">设备ID</label>
+                    <input type="text" id="device-id" name="device-id">
+                </div>
+                <div class="form-group">
+                    <label for="device-model">设备型号</label>
+                    <input type="text" id="device-model" name="device-model">
+                </div>
+                <div class="form-group">
+                    <label for="device-version">设备版本</label>
+                    <input type="text" id="device-version" name="device-version">
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h2>硬件设置</h2>
+                <div class="form-group">
+                    <label for="qr-code-enabled">二维码开门</label>
+                    <select id="qr-code-enabled" name="qr-code-enabled">
+                        <option value="true">启用</option>
+                        <option value="false">禁用</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="face-recognition-enabled">人脸识别开门</label>
+                    <select id="face-recognition-enabled" name="face-recognition-enabled">
+                        <option value="true">启用</option>
+                        <option value="false">禁用</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="auto-lock-timeout">自动锁定超时时间（秒）</label>
+                    <input type="number" id="auto-lock-timeout" name="auto-lock-timeout" min="5" max="300">
+                </div>
+                <div class="form-group">
+                    <label for="target-temperature">目标温度（摄氏度）</label>
+                    <input type="number" id="target-temperature" name="target-temperature" step="0.1">
+                </div>
+            </div>
+            
+            <div class="settings-section">
+                <h2>系统设置</h2>
+                <div class="form-group">
+                    <label for="log-level">日志级别</label>
+                    <select id="log-level" name="log-level">
+                        <option value="DEBUG">DEBUG</option>
+                        <option value="INFO">INFO</option>
+                        <option value="WARNING">WARNING</option>
+                        <option value="ERROR">ERROR</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="auto-restart-enabled">自动重启</label>
+                    <select id="auto-restart-enabled" name="auto-restart-enabled">
+                        <option value="true">启用</option>
+                        <option value="false">禁用</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="auto-restart-time">自动重启时间</label>
+                    <input type="text" id="auto-restart-time" name="auto-restart-time" placeholder="HH:MM">
+                </div>
+            </div>
+            
+            <button class="button" onclick="saveSettings()">保存设置</button>
+            <div id="message"></div>
+        </div>
+    </div>
+
+    <script>
+        // 加载设置数据
+        fetch('/api/settings')
+            .then(response => response.json())
+            .then(settings => {
+                // 设备信息
+                document.getElementById('device-id').value = settings.device?.device_id || '';
+                document.getElementById('device-model').value = settings.device?.model || '';
+                document.getElementById('device-version').value = settings.device?.version || '';
+                
+                // 硬件设置
+                document.getElementById('qr-code-enabled').value = settings.hardware?.lock_control?.qr_code_enabled?.toString() || 'true';
+                document.getElementById('face-recognition-enabled').value = settings.hardware?.lock_control?.face_recognition_enabled?.toString() || 'true';
+                document.getElementById('auto-lock-timeout').value = settings.hardware?.lock_control?.auto_lock_timeout || 30;
+                document.getElementById('target-temperature').value = settings.hardware?.temperature_control?.target_temperature || 4.0;
+                
+                // 系统设置
+                document.getElementById('log-level').value = settings.system?.log_level || 'INFO';
+                document.getElementById('auto-restart-enabled').value = settings.system?.auto_restart?.enabled?.toString() || 'true';
+                document.getElementById('auto-restart-time').value = settings.system?.auto_restart?.time || '03:00';
+            })
+            .catch(error => console.error('加载设置数据失败:', error));
+        
+        // 保存设置
+        function saveSettings() {
+            const settings = {
+                device: {
+                    device_id: document.getElementById('device-id').value,
+                    model: document.getElementById('device-model').value,
+                    version: document.getElementById('device-version').value
+                },
+                hardware: {
+                    lock_control: {
+                        qr_code_enabled: document.getElementById('qr-code-enabled').value === 'true',
+                        face_recognition_enabled: document.getElementById('face-recognition-enabled').value === 'true',
+                        auto_lock_timeout: parseInt(document.getElementById('auto-lock-timeout').value)
+                    },
+                    temperature_control: {
+                        target_temperature: parseFloat(document.getElementById('target-temperature').value)
+                    }
+                },
+                system: {
+                    log_level: document.getElementById('log-level').value,
+                    auto_restart: {
+                        enabled: document.getElementById('auto-restart-enabled').value === 'true',
+                        time: document.getElementById('auto-restart-time').value
+                    }
+                }
+            };
+            
+            fetch('/api/settings', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(settings)
+            })
+            .then(response => response.json())
+            .then(result => {
+                const messageElement = document.getElementById('message');
+                if (result.success) {
+                    messageElement.className = 'success-message';
+                    messageElement.textContent = result.message;
+                } else {
+                    messageElement.className = 'error-message';
+                    messageElement.textContent = result.message;
+                }
+            })
+            .catch(error => {
+                console.error('保存设置失败:', error);
+                const messageElement = document.getElementById('message');
+                messageElement.className = 'error-message';
+                messageElement.textContent = '保存设置失败，请重试';
+            });
+        }
+    </script>
+</body>
+</html>
