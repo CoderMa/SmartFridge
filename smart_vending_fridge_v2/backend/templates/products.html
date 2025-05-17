@@ -14,14 +14,33 @@
         .sidebar a { text-decoration: none; color: #333; display: block; padding: 10px; border-radius: 4px; }
         .sidebar a:hover { background-color: #ddd; }
         .sidebar a.active { background-color: #4CAF50; color: white; }
-        .content { flex-grow: 1; padding: 20px; }
+        .content { flex-grow: 1; padding: 20px; overflow-y: auto; }
         h1 { margin-top: 0; }
+        .filter-bar { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .search-box { display: flex; }
+        .search-box input { padding: 8px; border: 1px solid #ddd; border-radius: 4px 0 0 4px; width: 250px; }
+        .search-box button { padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 0 4px 4px 0; cursor: pointer; }
+        .category-filter { display: flex; align-items: center; }
+        .category-filter select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-left: 10px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background-color: #f2f2f2; }
         tr:hover { background-color: #f5f5f5; }
         .button { padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
         .button:hover { background-color: #45a049; }
+        .button.delete { background-color: #f44336; }
+        .button.delete:hover { background-color: #d32f2f; }
+        .modal { display: none; position: fixed; z-index: 1; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.4); }
+        .modal-content { background-color: #fefefe; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 600px; border-radius: 5px; }
+        .close { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .close:hover { color: black; }
+        .form-group { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; }
+        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 8px; box-sizing: border-box; border: 1px solid #ddd; border-radius: 4px; }
+        .form-row { display: flex; gap: 15px; }
+        .form-row .form-group { flex: 1; }
+        .product-image { max-width: 80px; max-height: 80px; }
+        .image-preview { max-width: 200px; max-height: 200px; margin-top: 10px; display: none; }
     </style>
 </head>
 <body>
@@ -37,9 +56,11 @@
             <ul>
                 <li><a href="/">首页</a></li>
                 <li><a href="/devices">设备管理</a></li>
+                <li><a href="/monitoring">实时监控</a></li>
                 <li><a href="/products" class="active">商品管理</a></li>
                 <li><a href="/orders">订单管理</a></li>
                 <li><a href="/statistics">统计分析</a></li>
+                <li><a href="/users">用户管理</a></li>
                 {% if session.role == 'admin' %}
                 <li><a href="/settings">系统设置</a></li>
                 {% endif %}
@@ -48,13 +69,30 @@
         <div class="content">
             <h1>商品管理</h1>
             
-            {% if session.role == 'admin' %}
-            <button class="button" onclick="showAddProductForm()">添加商品</button>
-            {% endif %}
+            <div class="filter-bar">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="搜索商品名称、ID或条形码...">
+                    <button onclick="searchProducts()">搜索</button>
+                </div>
+                <div class="category-filter">
+                    <label for="category-filter">类别:</label>
+                    <select id="category-filter" onchange="filterProducts()">
+                        <option value="">全部</option>
+                        <option value="饮料">饮料</option>
+                        <option value="食品">食品</option>
+                        <option value="乳制品">乳制品</option>
+                        <option value="零食">零食</option>
+                    </select>
+                </div>
+                {% if session.role == 'admin' %}
+                <button class="button" onclick="openAddProductModal()">添加商品</button>
+                {% endif %}
+            </div>
             
             <table id="products-table">
                 <thead>
                     <tr>
+                        <th>图片</th>
                         <th>商品ID</th>
                         <th>名称</th>
                         <th>价格</th>
@@ -72,56 +110,338 @@
             </table>
         </div>
     </div>
+    
+    <!-- 添加商品模态框 -->
+    <div id="add-product-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeAddProductModal()">&times;</span>
+            <h2>添加商品</h2>
+            <form id="add-product-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="product-id">商品ID</label>
+                        <input type="text" id="product-id" name="product_id" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-name">商品名称</label>
+                        <input type="text" id="product-name" name="name" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="product-price">价格</label>
+                        <input type="number" id="product-price" name="price" step="0.01" min="0" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="product-category">类别</label>
+                        <select id="product-category" name="category" required>
+                            <option value="饮料">饮料</option>
+                            <option value="食品">食品</option>
+                            <option value="乳制品">乳制品</option>
+                            <option value="零食">零食</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="product-barcode">条形码</label>
+                        <input type="text" id="product-barcode" name="barcode">
+                    </div>
+                    <div class="form-group">
+                        <label for="product-shelf-life">保质期(天)</label>
+                        <input type="number" id="product-shelf-life" name="shelf_life" min="1">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="product-image">图片URL</label>
+                    <input type="text" id="product-image" name="image_path" onchange="previewImage('image-preview', this.value)">
+                    <img id="image-preview" class="image-preview" src="" alt="商品图片预览">
+                </div>
+                <div class="form-group">
+                    <label for="product-description">商品描述</label>
+                    <textarea id="product-description" name="description" rows="3"></textarea>
+                </div>
+                <button type="submit" class="button">添加</button>
+            </form>
+        </div>
+    </div>
+    
+    <!-- 编辑商品模态框 -->
+    <div id="edit-product-modal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeEditProductModal()">&times;</span>
+            <h2>编辑商品</h2>
+            <form id="edit-product-form">
+                <input type="hidden" id="edit-product-id" name="product_id">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-product-name">商品名称</label>
+                        <input type="text" id="edit-product-name" name="name" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-product-price">价格</label>
+                        <input type="number" id="edit-product-price" name="price" step="0.01" min="0" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-product-category">类别</label>
+                        <select id="edit-product-category" name="category" required>
+                            <option value="饮料">饮料</option>
+                            <option value="食品">食品</option>
+                            <option value="乳制品">乳制品</option>
+                            <option value="零食">零食</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-product-barcode">条形码</label>
+                        <input type="text" id="edit-product-barcode" name="barcode">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="edit-product-shelf-life">保质期(天)</label>
+                        <input type="number" id="edit-product-shelf-life" name="shelf_life" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label for="edit-product-image">图片URL</label>
+                        <input type="text" id="edit-product-image" name="image_path" onchange="previewImage('edit-image-preview', this.value)">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <img id="edit-image-preview" class="image-preview" src="" alt="商品图片预览">
+                </div>
+                <div class="form-group">
+                    <label for="edit-product-description">商品描述</label>
+                    <textarea id="edit-product-description" name="description" rows="3"></textarea>
+                </div>
+                <button type="submit" class="button">保存</button>
+            </form>
+        </div>
+    </div>
 
     <script>
+        // 全局变量存储所有商品
+        let allProducts = [];
+        
         // 加载商品数据
         function loadProducts() {
             fetch('/api/products')
                 .then(response => response.json())
                 .then(products => {
-                    const tbody = document.querySelector('#products-table tbody');
-                    tbody.innerHTML = '';
-                    
-                    products.forEach(product => {
-                        const row = document.createElement('tr');
-                        
-                        let html = `
-                            <td>${product.product_id}</td>
-                            <td>${product.name}</td>
-                            <td>¥${product.price.toFixed(2)}</td>
-                            <td>${product.category || '-'}</td>
-                            <td>${product.barcode || '-'}</td>
-                            <td>${product.shelf_life || '-'}</td>
-                        `;
-                        
-                        // 如果是管理员，添加操作按钮
-                        if ('{{ session.role }}' === 'admin') {
-                            html += `
-                                <td>
-                                    <button class="button" onclick="editProduct('${product.product_id}')">编辑</button>
-                                </td>
-                            `;
-                        }
-                        
-                        row.innerHTML = html;
-                        tbody.appendChild(row);
-                    });
+                    allProducts = products;
+                    displayProducts(products);
                 })
                 .catch(error => console.error('加载商品数据失败:', error));
         }
         
-        // 页面加载时获取商品数据
-        window.onload = loadProducts;
+        // 显示商品
+        function displayProducts(products) {
+            const tbody = document.querySelector('#products-table tbody');
+            tbody.innerHTML = '';
+            
+            products.forEach(product => {
+                const row = document.createElement('tr');
+                
+                let html = `
+                    <td><img src="${product.image_path || 'https://via.placeholder.com/80?text=No+Image'}" alt="${product.name}" class="product-image"></td>
+                    <td>${product.product_id}</td>
+                    <td>${product.name}</td>
+                    <td>¥${product.price.toFixed(2)}</td>
+                    <td>${product.category || '-'}</td>
+                    <td>${product.barcode || '-'}</td>
+                    <td>${product.shelf_life || '-'}</td>
+                `;
+                
+                // 如果是管理员，添加操作按钮
+                if ('{{ session.role }}' === 'admin') {
+                    html += `
+                        <td>
+                            <button class="button" onclick="editProduct('${product.product_id}')">编辑</button>
+                            <button class="button delete" onclick="deleteProduct('${product.product_id}')">删除</button>
+                        </td>
+                    `;
+                }
+                
+                row.innerHTML = html;
+                tbody.appendChild(row);
+            });
+        }
         
-        // 显示添加商品表单
-        function showAddProductForm() {
-            alert('添加商品功能尚未实现');
+        // 搜索商品
+        function searchProducts() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const categoryFilter = document.getElementById('category-filter').value;
+            
+            const filteredProducts = allProducts.filter(product => {
+                const matchesSearch = searchTerm === '' || 
+                    product.name.toLowerCase().includes(searchTerm) || 
+                    product.product_id.toLowerCase().includes(searchTerm) || 
+                    (product.barcode && product.barcode.toLowerCase().includes(searchTerm));
+                
+                const matchesCategory = categoryFilter === '' || product.category === categoryFilter;
+                
+                return matchesSearch && matchesCategory;
+            });
+            
+            displayProducts(filteredProducts);
+        }
+        
+        // 按类别筛选商品
+        function filterProducts() {
+            searchProducts(); // 复用搜索功能
+        }
+        
+        // 图片预览
+        function previewImage(previewId, imageUrl) {
+            const preview = document.getElementById(previewId);
+            if (imageUrl) {
+                preview.src = imageUrl;
+                preview.style.display = 'block';
+            } else {
+                preview.style.display = 'none';
+            }
+        }
+        
+        // 添加商品模态框
+        const addProductModal = document.getElementById('add-product-modal');
+        
+        function openAddProductModal() {
+            addProductModal.style.display = 'block';
+        }
+        
+        function closeAddProductModal() {
+            addProductModal.style.display = 'none';
+            document.getElementById('add-product-form').reset();
+            document.getElementById('image-preview').style.display = 'none';
+        }
+        
+        // 编辑商品模态框
+        const editProductModal = document.getElementById('edit-product-modal');
+        
+        function openEditProductModal() {
+            editProductModal.style.display = 'block';
+        }
+        
+        function closeEditProductModal() {
+            editProductModal.style.display = 'none';
+            document.getElementById('edit-image-preview').style.display = 'none';
         }
         
         // 编辑商品
         function editProduct(productId) {
-            alert(`编辑商品 ${productId} 功能尚未实现`);
+            const product = allProducts.find(p => p.product_id === productId);
+            if (product) {
+                document.getElementById('edit-product-id').value = product.product_id;
+                document.getElementById('edit-product-name').value = product.name;
+                document.getElementById('edit-product-price').value = product.price;
+                document.getElementById('edit-product-category').value = product.category || '';
+                document.getElementById('edit-product-barcode').value = product.barcode || '';
+                document.getElementById('edit-product-shelf-life').value = product.shelf_life || '';
+                document.getElementById('edit-product-image').value = product.image_path || '';
+                document.getElementById('edit-product-description').value = product.description || '';
+                
+                // 显示图片预览
+                if (product.image_path) {
+                    previewImage('edit-image-preview', product.image_path);
+                }
+                
+                openEditProductModal();
+            }
         }
+        
+        // 删除商品
+        function deleteProduct(productId) {
+            if (confirm(`确定要删除商品 ${productId} 吗？`)) {
+                fetch(`/api/products/${productId}`, {
+                    method: 'DELETE'
+                })
+                .then(response => response.json())
+                .then(result => {
+                    if (result.success) {
+                        alert('商品删除成功');
+                        loadProducts();
+                    } else {
+                        alert(`删除失败: ${result.message}`);
+                    }
+                })
+                .catch(error => console.error('删除商品失败:', error));
+            }
+        }
+        
+        // 添加商品表单提交
+        document.getElementById('add-product-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const productData = {
+                product_id: formData.get('product_id'),
+                name: formData.get('name'),
+                price: parseFloat(formData.get('price')),
+                category: formData.get('category'),
+                barcode: formData.get('barcode'),
+                shelf_life: formData.get('shelf_life') ? parseInt(formData.get('shelf_life')) : null,
+                image_path: formData.get('image_path'),
+                description: formData.get('description')
+            };
+            
+            fetch('/api/products', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(productData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('商品添加成功');
+                    closeAddProductModal();
+                    loadProducts();
+                } else {
+                    alert(`添加失败: ${result.message}`);
+                }
+            })
+            .catch(error => console.error('添加商品失败:', error));
+        });
+        
+        // 编辑商品表单提交
+        document.getElementById('edit-product-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const productData = {
+                name: formData.get('name'),
+                price: parseFloat(formData.get('price')),
+                category: formData.get('category'),
+                barcode: formData.get('barcode'),
+                shelf_life: formData.get('shelf_life') ? parseInt(formData.get('shelf_life')) : null,
+                image_path: formData.get('image_path'),
+                description: formData.get('description')
+            };
+            
+            fetch(`/api/products/${formData.get('product_id')}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(productData)
+            })
+            .then(response => response.json())
+            .then(result => {
+                if (result.success) {
+                    alert('商品更新成功');
+                    closeEditProductModal();
+                    loadProducts();
+                } else {
+                    alert(`更新失败: ${result.message}`);
+                }
+            })
+            .catch(error => console.error('更新商品失败:', error));
+        });
+        
+        // 页面加载时获取商品数据
+        window.onload = loadProducts;
     </script>
 </body>
 </html>

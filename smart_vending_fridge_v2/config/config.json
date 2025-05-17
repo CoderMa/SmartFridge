@@ -162,6 +162,15 @@
       "image_path": "data/product_images/yogurt.jpg",
       "barcode": "6901234567894",
       "shelf_life": 7
+    },
+    "SKU006": {
+      "name": "雪碧",
+      "price": 3.5,
+      "category": "饮料",
+      "barcode": " \t6901234567894",
+      "image_path": "",
+      "shelf_life": 180,
+      "description": "雪碧"
     }
   }
 }

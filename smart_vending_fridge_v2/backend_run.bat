@@ -1,4 +1,5 @@
 @echo off
+chcp 65001 >nul
 REM 智能售卖柜后台管理系统启动脚本 - Windows版本
 
 echo 正在启动智能售卖柜后台管理系统...

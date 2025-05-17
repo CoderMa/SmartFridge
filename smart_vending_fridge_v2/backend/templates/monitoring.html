@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>智能售卖柜后台管理系统 - 实时监控</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 0; padding: 0; }
+        .header { background-color: #4CAF50; color: white; padding: 15px; display: flex; justify-content: space-between; align-items: center; }
+        .user-info { display: flex; align-items: center; }
+        .user-info span { margin-right: 15px; }
+        .container { display: flex; height: calc(100vh - 60px); }
+        .sidebar { width: 200px; background-color: #f1f1f1; padding: 20px; }
+        .sidebar ul { list-style-type: none; padding: 0; }
+        .sidebar li { margin-bottom: 10px; }
+        .sidebar a { text-decoration: none; color: #333; display: block; padding: 10px; border-radius: 4px; }
+        .sidebar a:hover { background-color: #ddd; }
+        .sidebar a.active { background-color: #4CAF50; color: white; }
+        .content { flex-grow: 1; padding: 20px; overflow-y: auto; }
+        h1 { margin-top: 0; }
+        .dashboard { display: flex; flex-wrap: wrap; gap: 20px; margin-bottom: 20px; }
+        .card { background-color: white; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); padding: 20px; flex: 1; min-width: 200px; }
+        .card h3 { margin-top: 0; color: #333; }
+        .card .number { font-size: 24px; font-weight: bold; }
+        .status { padding: 5px 10px; border-radius: 3px; display: inline-block; }
+        .online, .closed { background-color: #4CAF50; color: white; }
+        .offline, .open { background-color: #f44336; color: white; }
+        .chart-container { background-color: white; border-radius: 5px; box-shadow: 0 0 10px rgba(0,0,0,0.1); padding: 20px; margin-bottom: 20px; }
+        .chart-container h2 { margin-top: 0; }
+        .transactions-list { list-style-type: none; padding: 0; }
+        .transactions-list li { padding: 10px; border-bottom: 1px solid #ddd; display: flex; justify-content: space-between; }
+        .transaction-time { color: #666; }
+        .transaction-amount { font-weight: bold; color: #4CAF50; }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="header">
+        <h1>智能售卖柜后台管理系统</h1>
+        <div class="user-info">
+            <span>欢迎，{{ name }}</span>
+            <a href="/logout" style="color: white;">退出</a>
+        </div>
+    </div>
+    <div class="container">
+        <div class="sidebar">
+            <ul>
+                <li><a href="/">首页</a></li>
+                <li><a href="/devices">设备管理</a></li>
+                <li><a href="/monitoring" class="active">实时监控</a></li>
+                <li><a href="/products">商品管理</a></li>
+                <li><a href="/orders">订单管理</a></li>
+                <li><a href="/statistics">统计分析</a></li>
+                <li><a href="/users">用户管理</a></li>
+                {% if session.role == 'admin' %}
+                <li><a href="/settings">系统设置</a></li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="content">
+            <h1>实时监控</h1>
+            
+            <div class="dashboard">
+                <div class="card">
+                    <h3>当前温度</h3>
+                    <p class="number" id="current-temperature">--°C</p>
+                </div>
+                <div class="card">
+                    <h3>当前湿度</h3>
+                    <p class="number" id="current-humidity">--%</p>
+                </div>
+                <div class="card">
+                    <h3>门状态</h3>
+                    <p><span class="status" id="door-status">--</span></p>
+                </div>
+                <div class="card">
+                    <h3>设备状态</h3>
+                    <p><span class="status" id="device-status">--</span></p>
+                </div>
+            </div>
+            
+            <div class="chart-container">
+                <h2>温度变化趋势</h2>
+                <canvas id="temperature-chart"></canvas>
+            </div>
+            
+            <div class="chart-container">
+                <h2>最近交易</h2>
+                <ul class="transactions-list" id="recent-transactions">
+                    <li>加载中...</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 模拟温度数据
+        const temperatureData = {
+            timestamps: [],
+            temperatures: []
+        };
+        
+        // 生成过去24小时的时间戳
+        const now = new Date();
+        for (let i = 24; i >= 0; i--) {
+            const time = new Date(now);
+            time.setHours(now.getHours() - i);
+            temperatureData.timestamps.push(time.toLocaleTimeString());
+            // 生成4°C左右的随机温度
+            temperatureData.temperatures.push((4 + (Math.random() * 0.6 - 0.3)).toFixed(1));
+        }
+        
+        // 创建温度图表
+        const tempCtx = document.getElementById('temperature-chart').getContext('2d');
+        const tempChart = new Chart(tempCtx, {
+            type: 'line',
+            data: {
+                labels: temperatureData.timestamps,
+                datasets: [{
+                    label: '温度',
+                    data: temperatureData.temperatures,
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    tension: 0.4
+                }]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: {
+                        title: {
+                            display: true,
+                            text: '温度 (°C)'
+                        }
+                    }
+                }
+            }
+        });
+        
+        // 模拟实时数据更新
+        function updateMonitoringData() {
+            // 模拟API调用
+            const data = {
+                temperature: (4 + (Math.random() * 0.6 - 0.3)).toFixed(1),
+                humidity: (45 + (Math.random() * 10 - 5)).toFixed(1),
+                door_open: Math.random() > 0.8, // 20%概率门是开的
+                device_online: Math.random() > 0.05, // 95%概率设备在线
+                recent_transactions: [
+                    {
+                        time: new Date().toLocaleTimeString(),
+                        products: [{ name: '可口可乐' }, { name: '农夫山泉' }],
+                        amount: 5.50
+                    },
+                    {
+                        time: new Date(Date.now() - 15 * 60000).toLocaleTimeString(),
+                        products: [{ name: '三明治' }],
+                        amount: 15.00
+                    },
+                    {
+                        time: new Date(Date.now() - 45 * 60000).toLocaleTimeString(),
+                        products: [{ name: '酸奶' }, { name: '百事可乐' }],
+                        amount: 9.00
+                    }
+                ]
+            };
+            
+            // 更新温度显示
+            document.getElementById('current-temperature').textContent = `${data.temperature}°C`;
+            document.getElementById('current-humidity').textContent = `${data.humidity}%`;
+            
+            // 更新门状态
+            const doorStatus = document.getElementById('door-status');
+            if (data.door_open) {
+                doorStatus.textContent = '开启';
+                doorStatus.className = 'status open';
+            } else {
+                doorStatus.textContent = '关闭';
+                doorStatus.className = 'status closed';
+            }
+            
+            // 更新设备状态
+            const deviceStatus = document.getElementById('device-status');
+            if (data.device_online) {
+                deviceStatus.textContent = '在线';
+                deviceStatus.className = 'status online';
+            } else {
+                deviceStatus.textContent = '离线';
+                deviceStatus.className = 'status offline';
+            }
+            
+            // 更新温度图表
+            temperatureData.timestamps.shift();
+            temperatureData.timestamps.push(new Date().toLocaleTimeString());
+            temperatureData.temperatures.shift();
+            temperatureData.temperatures.push(data.temperature);
+            tempChart.update();
+            
+            // 更新最近交易
+            const transactionsList = document.getElementById('recent-transactions');
+            transactionsList.innerHTML = '';
+            
+            data.recent_transactions.forEach(transaction => {
+                const li = document.createElement('li');
+                li.innerHTML = `
+                    <div class="transaction-time">${transaction.time}</div>
+                    <div class="transaction-info">
+                        <div>${transaction.products.length} 件商品</div>
+                        <div class="transaction-amount">¥${transaction.amount.toFixed(2)}</div>
+                    </div>
+                `;
+                transactionsList.appendChild(li);
+            });
+        }
+        
+        // 初始更新
+        updateMonitoringData();
+        
+        // 每10秒更新一次数据
+        setInterval(updateMonitoringData, 10000);
+    </script>
+</body>
+</html>
