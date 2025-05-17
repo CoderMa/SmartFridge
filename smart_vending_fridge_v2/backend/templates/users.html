@@ -49,9 +49,9 @@
                 <li><a href="/monitoring">实时监控</a></li>
                 <li><a href="/products">商品管理</a></li>
                 <li><a href="/orders">订单管理</a></li>
-                <li><a href="/statistics">统计分析</a></li>
-                <li><a href="/users" class="active">用户管理</a></li>
+                <li><a href="/statistics">统计分析</a></li>                
                 {% if session.role == 'admin' %}
+                <li><a href="/users" class="active">用户管理</a></li>
                 <li><a href="/settings">系统设置</a></li>
                 {% endif %}
             </ul>
