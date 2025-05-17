@@ -171,6 +171,12 @@ def orders():
     """订单管理页面"""
     return render_template('orders.html', username=session.get('username'), name=session.get('name'))
 
+@app.route('/order_detail')
+@login_required
+def order_detail():
+    """订单详情页面"""
+    return render_template('order_detail.html', username=session.get('username'), name=session.get('name'))
+
 @app.route('/statistics')
 @login_required
 def statistics():
@@ -373,7 +379,7 @@ def api_orders():
     if not orders:
         orders = [
             {
-                'transaction_id': f"T{int(datetime.now().timestamp())}-0001",
+                'transaction_id': "T12345-0001",
                 'user_id': 'user123',
                 'auth_method': 'qr_code',
                 'start_time': (datetime.now() - timedelta(hours=2)).strftime('%Y-%m-%d %H:%M:%S'),
@@ -398,7 +404,7 @@ def api_orders():
                 'end_time': (datetime.now() - timedelta(hours=2)).strftime('%Y-%m-%d %H:%M:%S')
             },
             {
-                'transaction_id': f"T{int(datetime.now().timestamp())}-0002",
+                'transaction_id': "T12345-0002",
                 'user_id': 'user456',
                 'auth_method': 'face_recognition',
                 'start_time': (datetime.now() - timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S'),
@@ -419,6 +425,128 @@ def api_orders():
         ]
     
     return jsonify(orders)
+
+@app.route('/api/orders/<order_id>', methods=['GET'])
+@login_required
+def api_order_detail(order_id):
+    """获取订单详情"""
+    # 加载交易记录
+    orders = load_data('payment_records.json')
+    
+    # 如果没有记录，使用模拟数据
+    if not orders:
+        orders = [
+            {
+                'transaction_id': "T12345-0001",
+                'user_id': 'user123',
+                'auth_method': 'qr_code',
+                'start_time': (datetime.now() - timedelta(hours=2)).strftime('%Y-%m-%d %H:%M:%S'),
+                'status': 'completed',
+                'products': [
+                    {
+                        'product_id': 'SKU001',
+                        'name': '可口可乐',
+                        'price': 3.50,
+                        'category': '饮料'
+                    },
+                    {
+                        'product_id': 'SKU003',
+                        'name': '农夫山泉',
+                        'price': 2.00,
+                        'category': '饮料'
+                    }
+                ],
+                'total_amount': 5.50,
+                'payment_status': 'paid',
+                'payment_method': 'wechat',
+                'end_time': (datetime.now() - timedelta(hours=2)).strftime('%Y-%m-%d %H:%M:%S')
+            },
+            {
+                'transaction_id': "T12345-0002",
+                'user_id': 'user456',
+                'auth_method': 'face_recognition',
+                'start_time': (datetime.now() - timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S'),
+                'status': 'completed',
+                'products': [
+                    {
+                        'product_id': 'SKU004',
+                        'name': '三明治',
+                        'price': 15.00,
+                        'category': '食品'
+                    }
+                ],
+                'total_amount': 15.00,
+                'payment_status': 'paid',
+                'payment_method': 'alipay',
+                'end_time': (datetime.now() - timedelta(hours=1)).strftime('%Y-%m-%d %H:%M:%S')
+            }
+        ]
+    
+    # 查找指定订单
+    order = next((o for o in orders if o['transaction_id'] == order_id), None)
+    
+    if not order:
+        return jsonify({'error': '订单不存在'}), 404
+    
+    return jsonify(order)
+
+@app.route('/api/orders/<order_id>/refund', methods=['POST'])
+@login_required
+def api_order_refund(order_id):
+    """订单退款"""
+    if session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+    
+    # 加载交易记录
+    orders = load_data('payment_records.json')
+    
+    # 查找指定订单
+    order = next((o for o in orders if o['transaction_id'] == order_id), None)
+    
+    if not order:
+        return jsonify({'success': False, 'message': '订单不存在'}), 404
+    
+    # 检查订单状态
+    if order['status'] != 'completed' or order['payment_status'] != 'paid':
+        return jsonify({'success': False, 'message': '订单状态不允许退款'}), 400
+    
+    # 更新订单状态
+    order['payment_status'] = 'refunded'
+    order['refund_time'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+    # 保存更新后的订单
+    save_data('payment_records.json', orders)
+    
+    return jsonify({'success': True, 'message': '退款成功'})
+
+@app.route('/api/orders/<order_id>/cancel', methods=['POST'])
+@login_required
+def api_order_cancel(order_id):
+    """取消订单"""
+    if session.get('role') != 'admin':
+        return jsonify({'success': False, 'message': '权限不足'}), 403
+    
+    # 加载交易记录
+    orders = load_data('payment_records.json')
+    
+    # 查找指定订单
+    order = next((o for o in orders if o['transaction_id'] == order_id), None)
+    
+    if not order:
+        return jsonify({'success': False, 'message': '订单不存在'}), 404
+    
+    # 检查订单状态
+    if order['status'] == 'completed':
+        return jsonify({'success': False, 'message': '已完成的订单不能取消'}), 400
+    
+    # 更新订单状态
+    order['status'] = 'cancelled'
+    order['cancel_time'] = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+    
+    # 保存更新后的订单
+    save_data('payment_records.json', orders)
+    
+    return jsonify({'success': True, 'message': '订单已取消'})
 
 @app.route('/api/statistics', methods=['GET'])
 @login_required

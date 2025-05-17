@@ -14,18 +14,28 @@
         .sidebar a { text-decoration: none; color: #333; display: block; padding: 10px; border-radius: 4px; }
         .sidebar a:hover { background-color: #ddd; }
         .sidebar a.active { background-color: #4CAF50; color: white; }
-        .content { flex-grow: 1; padding: 20px; }
+        .content { flex-grow: 1; padding: 20px; overflow-y: auto; }
         h1 { margin-top: 0; }
+        .filter-bar { display: flex; justify-content: space-between; margin-bottom: 20px; }
+        .search-box { display: flex; }
+        .search-box input { padding: 8px; border: 1px solid #ddd; border-radius: 4px 0 0 4px; width: 250px; }
+        .search-box button { padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 0 4px 4px 0; cursor: pointer; }
+        .filter-controls { display: flex; align-items: center; }
+        .filter-controls select { padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-left: 10px; }
         table { width: 100%; border-collapse: collapse; margin-top: 20px; }
         th, td { padding: 10px; text-align: left; border-bottom: 1px solid #ddd; }
         th { background-color: #f2f2f2; }
         tr:hover { background-color: #f5f5f5; }
-        .status { padding: 5px 10px; border-radius: 3px; }
+        .status { padding: 5px 10px; border-radius: 3px; display: inline-block; }
         .completed { background-color: #4CAF50; color: white; }
         .pending { background-color: #2196F3; color: white; }
         .cancelled { background-color: #f44336; color: white; }
         .button { padding: 8px 16px; background-color: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
         .button:hover { background-color: #45a049; }
+        .pagination { display: flex; justify-content: center; margin-top: 20px; }
+        .pagination a { padding: 8px 16px; text-decoration: none; color: #333; margin: 0 5px; border-radius: 4px; }
+        .pagination a:hover { background-color: #ddd; }
+        .pagination a.active { background-color: #4CAF50; color: white; }
     </style>
 </head>
 <body>
@@ -41,9 +51,11 @@
             <ul>
                 <li><a href="/">首页</a></li>
                 <li><a href="/devices">设备管理</a></li>
+                <li><a href="/monitoring">实时监控</a></li>
                 <li><a href="/products">商品管理</a></li>
                 <li><a href="/orders" class="active">订单管理</a></li>
                 <li><a href="/statistics">统计分析</a></li>
+                <li><a href="/users">用户管理</a></li>
                 {% if session.role == 'admin' %}
                 <li><a href="/settings">系统设置</a></li>
                 {% endif %}
@@ -51,6 +63,30 @@
         </div>
         <div class="content">
             <h1>订单管理</h1>
+            
+            <div class="filter-bar">
+                <div class="search-box">
+                    <input type="text" id="search-input" placeholder="搜索订单ID或用户ID...">
+                    <button onclick="searchOrders()">搜索</button>
+                </div>
+                <div class="filter-controls">
+                    <label for="status-filter">状态:</label>
+                    <select id="status-filter" onchange="filterOrders()">
+                        <option value="">全部</option>
+                        <option value="completed">已完成</option>
+                        <option value="pending">处理中</option>
+                        <option value="cancelled">已取消</option>
+                    </select>
+                    <label for="date-filter" style="margin-left: 10px;">日期:</label>
+                    <select id="date-filter" onchange="filterOrders()">
+                        <option value="">全部</option>
+                        <option value="today">今天</option>
+                        <option value="yesterday">昨天</option>
+                        <option value="week">最近7天</option>
+                        <option value="month">最近30天</option>
+                    </select>
+                </div>
+            </div>
             
             <table id="orders-table">
                 <thead>
@@ -61,49 +97,212 @@
                         <th>商品</th>
                         <th>总金额</th>
                         <th>支付方式</th>
-                        <th>详情</th>
+                        <th>时间</th>
+                        <th>操作</th>
                     </tr>
                 </thead>
                 <tbody>
                     <!-- 订单数据将通过JavaScript动态加载 -->
                 </tbody>
             </table>
+            
+            <div class="pagination" id="pagination">
+                <!-- 分页控件将通过JavaScript动态生成 -->
+            </div>
         </div>
     </div>
 
     <script>
+        // 全局变量存储所有订单
+        let allOrders = [];
+        let currentPage = 1;
+        const ordersPerPage = 10;
+        
         // 加载订单数据
-        fetch('/api/orders')
-            .then(response => response.json())
-            .then(orders => {
-                const tbody = document.querySelector('#orders-table tbody');
-                tbody.innerHTML = '';
-                
-                orders.forEach(order => {
+        function loadOrders() {
+            fetch('/api/orders')
+                .then(response => response.json())
+                .then(orders => {
+                    allOrders = orders;
+                    filterOrders();
+                })
+                .catch(error => console.error('加载订单数据失败:', error));
+        }
+        
+        // 显示订单
+        function displayOrders(orders, page = 1) {
+            const tbody = document.querySelector('#orders-table tbody');
+            tbody.innerHTML = '';
+            
+            // 计算分页
+            const startIndex = (page - 1) * ordersPerPage;
+            const endIndex = startIndex + ordersPerPage;
+            const paginatedOrders = orders.slice(startIndex, endIndex);
+            
+            if (paginatedOrders.length === 0) {
+                const row = document.createElement('tr');
+                row.innerHTML = '<td colspan="8">没有找到订单</td>';
+                tbody.appendChild(row);
+            } else {
+                paginatedOrders.forEach(order => {
                     const row = document.createElement('tr');
                     
                     // 格式化商品列表
                     const productsList = order.products.map(p => p.name).join(', ');
                     
+                    // 格式化状态
+                    const statusText = {
+                        'completed': '已完成',
+                        'pending': '处理中',
+                        'cancelled': '已取消'
+                    }[order.status] || order.status;
+                    
                     row.innerHTML = `
                         <td>${order.transaction_id}</td>
                         <td>${order.user_id}</td>
-                        <td><span class="status ${order.status}">${order.status}</span></td>
+                        <td><span class="status ${order.status}">${statusText}</span></td>
                         <td>${productsList}</td>
                         <td>¥${order.total_amount.toFixed(2)}</td>
-                        <td>${order.payment_method || '-'}</td>
-                        <td><button class="button" onclick="showOrderDetails('${order.transaction_id}')">查看详情</button></td>
+                        <td>${getPaymentMethodText(order.payment_method)}</td>
+                        <td>${order.start_time}</td>
+                        <td>
+                            <a href="/order_detail?id=${order.transaction_id}" class="button">查看详情</a>
+                        </td>
                     `;
                     
                     tbody.appendChild(row);
                 });
-            })
-            .catch(error => console.error('加载订单数据失败:', error));
-        
-        // 显示订单详情
-        function showOrderDetails(orderId) {
-            alert(`订单 ${orderId} 详情功能尚未实现`);
+            }
+            
+            // 更新分页控件
+            updatePagination(orders.length, page);
         }
+        
+        // 更新分页控件
+        function updatePagination(totalItems, currentPage) {
+            const totalPages = Math.ceil(totalItems / ordersPerPage);
+            const pagination = document.getElementById('pagination');
+            pagination.innerHTML = '';
+            
+            if (totalPages <= 1) {
+                return;
+            }
+            
+            // 添加"上一页"按钮
+            if (currentPage > 1) {
+                const prevLink = document.createElement('a');
+                prevLink.href = '#';
+                prevLink.textContent = '上一页';
+                prevLink.onclick = () => {
+                    goToPage(currentPage - 1);
+                    return false;
+                };
+                pagination.appendChild(prevLink);
+            }
+            
+            // 添加页码按钮
+            const startPage = Math.max(1, currentPage - 2);
+            const endPage = Math.min(totalPages, startPage + 4);
+            
+            for (let i = startPage; i <= endPage; i++) {
+                const pageLink = document.createElement('a');
+                pageLink.href = '#';
+                pageLink.textContent = i;
+                if (i === currentPage) {
+                    pageLink.className = 'active';
+                }
+                pageLink.onclick = () => {
+                    goToPage(i);
+                    return false;
+                };
+                pagination.appendChild(pageLink);
+            }
+            
+            // 添加"下一页"按钮
+            if (currentPage < totalPages) {
+                const nextLink = document.createElement('a');
+                nextLink.href = '#';
+                nextLink.textContent = '下一页';
+                nextLink.onclick = () => {
+                    goToPage(currentPage + 1);
+                    return false;
+                };
+                pagination.appendChild(nextLink);
+            }
+        }
+        
+        // 跳转到指定页
+        function goToPage(page) {
+            currentPage = page;
+            filterOrders();
+        }
+        
+        // 搜索订单
+        function searchOrders() {
+            const searchTerm = document.getElementById('search-input').value.toLowerCase();
+            const statusFilter = document.getElementById('status-filter').value;
+            const dateFilter = document.getElementById('date-filter').value;
+            
+            const filteredOrders = allOrders.filter(order => {
+                const matchesSearch = searchTerm === '' || 
+                    order.transaction_id.toLowerCase().includes(searchTerm) || 
+                    order.user_id.toLowerCase().includes(searchTerm);
+                
+                const matchesStatus = statusFilter === '' || order.status === statusFilter;
+                
+                const matchesDate = dateFilter === '' || isWithinDateRange(order.start_time, dateFilter);
+                
+                return matchesSearch && matchesStatus && matchesDate;
+            });
+            
+            currentPage = 1;
+            displayOrders(filteredOrders, currentPage);
+        }
+        
+        // 按条件筛选订单
+        function filterOrders() {
+            searchOrders(); // 复用搜索功能
+        }
+        
+        // 检查日期是否在指定范围内
+        function isWithinDateRange(dateString, range) {
+            const orderDate = new Date(dateString);
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            if (range === 'today') {
+                return orderDate >= today;
+            } else if (range === 'yesterday') {
+                const yesterday = new Date(today);
+                yesterday.setDate(today.getDate() - 1);
+                return orderDate >= yesterday && orderDate < today;
+            } else if (range === 'week') {
+                const weekAgo = new Date(today);
+                weekAgo.setDate(today.getDate() - 7);
+                return orderDate >= weekAgo;
+            } else if (range === 'month') {
+                const monthAgo = new Date(today);
+                monthAgo.setDate(today.getDate() - 30);
+                return orderDate >= monthAgo;
+            }
+            
+            return true;
+        }
+        
+        // 支付方式文本转换
+        function getPaymentMethodText(method) {
+            const methodMap = {
+                'wechat': '微信支付',
+                'alipay': '支付宝',
+                'unionpay': '银联',
+                'cash': '现金',
+                'digital_cny': '数字人民币'
+            };
+            return methodMap[method] || method || '-';
+        }
+        
+        // 页面加载时获取订单数据
+        window.onload = loadOrders;
     </script>
 </body>
 </html>
